@@ -17,7 +17,7 @@ class Normalizer(object):
     
 class UniformResizer(object):
     """Resize image and annotation"""
-    def __init__(self, min_side=600, max_side=1000):
+    def __init__(self, min_side=800, max_side=1000):
         self.min_side = min_side
         self.max_side = max_side
 

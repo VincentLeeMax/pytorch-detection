@@ -144,7 +144,7 @@ class RetinaNet(nn.Module):
         self.class_num = cfg['class_num']
         self.anchor_num = cfg['anchor_num']
         
-        self.extractor = ResNet[cfg['backbone']](False, True, return_feature=True)
+        self.extractor = ResNet[cfg['backbone']](pretrained=False, progress=True, return_feature=True)
         feature_sizes = self.extractor.get_feature_size()
         self.fpn = FeaturePyramid(feature_sizes[0], feature_sizes[1], feature_sizes[2])
         self.classificationSubnet = ClassificationSubnet(self.class_num, self.anchor_num)
@@ -157,8 +157,13 @@ class RetinaNet(nn.Module):
 
         self.regressionSubnet.conv_output.weight.data.fill_(0)
         self.regressionSubnet.conv_output.bias.data.fill_(0)
-        
-    def _init_weights():
+
+    def freeze_bn(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                layer.eval()
+
+    def _init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

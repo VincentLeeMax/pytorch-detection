@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 
 from pycocotools.coco import COCO
 
+
 class CocoDataset(Dataset):
 
     def __init__(self, root_dir, set_name='train2017', transform=None):
@@ -32,8 +33,8 @@ class CocoDataset(Dataset):
         categories = self.coco.loadCats(self.coco.getCatIds())
         categories.sort(key=lambda x: x['id'])
 
-        self.classes             = {}
-        self.coco_labels         = {}
+        self.classes = {}
+        self.coco_labels = {}
         self.coco_labels_inverse = {}
         for c in categories:
             self.coco_labels[len(self.classes)] = c['id']
@@ -52,7 +53,7 @@ class CocoDataset(Dataset):
     def __getitem__(self, idx):
         image = self.load_image(idx)
         bbox = self.load_annotations(idx)
-        
+
         sample = {'image': image, 'bbox': bbox}
         if self.transform:
             sample = self.transform(sample)
@@ -61,7 +62,7 @@ class CocoDataset(Dataset):
 
     def load_image(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
-        path       = os.path.join(self.root_dir, 'images', self.set_name, image_info['file_name'])
+        path = os.path.join(self.root_dir, 'images', self.set_name, image_info['file_name'])
         img = cv2.imread(path)
 
         if len(img.shape) == 2:
@@ -73,7 +74,7 @@ class CocoDataset(Dataset):
 
     def load_annotations(self, image_index):
         annotations_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index], iscrowd=False)
-        annotations     = np.zeros((0, 5))
+        annotations = np.zeros((0, 5))
 
         if len(annotations_ids) == 0:
             return annotations
@@ -84,10 +85,10 @@ class CocoDataset(Dataset):
             if a['bbox'][2] < 1 or a['bbox'][3] < 1:
                 continue
 
-            annotation        = np.zeros((1, 5))
+            annotation = np.zeros((1, 5))
             annotation[0, :4] = a['bbox']
-            annotation[0, 4]  = self.coco_label_to_label(a['category_id'])
-            annotations       = np.append(annotations, annotation, axis=0)
+            annotation[0, 4] = self.coco_label_to_label(a['category_id'])
+            annotations = np.append(annotations, annotation, axis=0)
 
         annotations[:, 2] = annotations[:, 0] + annotations[:, 2]
         annotations[:, 3] = annotations[:, 1] + annotations[:, 3]
@@ -103,14 +104,14 @@ class CocoDataset(Dataset):
     def image_aspect_ratio(self, image_index):
         image = self.coco.loadImgs(self.image_ids[image_index])[0]
         return float(image['width']) / float(image['height'])
-    
-    
+
+
 if __name__ == '__main__':
     from torchvision import transforms
     from torch.utils.data import DataLoader
     from dataset.transform import Normalizer, UniformResizer, ToTensor
-    
-    coco = CocoDataset('/workspace/nas-data/dataset/coco', set_name='val2014', 
+
+    coco = CocoDataset('/workspace/nas-data/dataset/coco', set_name='val2014',
                        transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
     dataloader_train = DataLoader(coco)
     print(coco.labels)
@@ -121,4 +122,3 @@ if __name__ == '__main__':
     for iter_num, data in enumerate(dataloader_train):
         print(data['image'].shape)
         break
-    
