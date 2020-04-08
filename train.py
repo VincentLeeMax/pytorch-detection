@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', help='Path to COCO directory', default='/workspace/nas-data/dataset/voc/VOCdevkit')
 
     dataset = VocDataset('/data/dataset/VOCdevkit', set_name='VOC2007',
-                       transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
+                       transform=transforms.Compose([Normalizer(), UniformResizer(min_side=300, max_side=600), ToTensor()]))
     # dataset = CocoDataset('/data/dataset/coco', set_name='train2017',
     #                      transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
     cfg['class_num'] = dataset.num_classes()
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     else:
         model = torch.nn.DataParallel(model)
 
-    focal_loss = DetectionFocalLoss(detection_loss=SmoothL1(reduction='mean'))
+    focal_loss = DetectionFocalLoss(detection_loss=SmoothL1())
     optimizer = optim.Adam(model.parameters(), lr=1e-5)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
@@ -76,8 +76,8 @@ if __name__ == '__main__':
             epoch_loss.append(float(loss))
 
             print(
-                'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
-                    epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+                'Epoch: {} | Iteration: {} | learning rate: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
+                    epoch_num, iter_num, optimizer.param_groups[0]['lr'], float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 
             del classification_loss
             del regression_loss

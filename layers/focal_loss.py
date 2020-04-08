@@ -4,6 +4,7 @@ import torch.nn as nn
 from utils.IoU import batch_cal_iou
 from utils.bbox_transform import to_twoPoint_format
 
+
 class DetectionFocalLoss(nn.Module):
     def __init__(self, alpha=0.25, gamma=2, detection_loss=None):
         super(DetectionFocalLoss, self).__init__()
@@ -22,6 +23,15 @@ class DetectionFocalLoss(nn.Module):
             anchor = anchors[0, :, :]
             annotation = annotations[batch_, :, :]
             two_poinsts_anchor = two_poinsts_anchors[0, :, :]
+
+            if annotation.shape[0] < 1:
+                if torch.cuda.is_available():
+                    classification_losses.append(torch.tensor(0).cuda())
+                    regression_losses.append(torch.tensor(0).cuda())
+                else:
+                    classification_losses.append(torch.tensor(0))
+                    regression_losses.append(torch.tensor(0))
+                continue
 
             classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
 
@@ -68,6 +78,7 @@ class DetectionFocalLoss(nn.Module):
                 deta_gts = torch.ones(assigned_gts.shape) * 1.0
                 if torch.cuda.is_available():
                     deta_gts = deta_gts.cuda()
+
                 # cal to central format
                 deta_gts[:, 2] = assigned_gts[:, 2] - assigned_gts[:, 0]
                 deta_gts[:, 0] = assigned_gts[:, 0] + assigned_gts[:, 2] / 2
@@ -85,12 +96,20 @@ class DetectionFocalLoss(nn.Module):
                 else:
                     deta_gts = deta_gts / torch.Tensor([[0.1, 0.1, 0.2, 0.2]])
                     positive_regressions = positive_regressions / torch.Tensor([[0.1, 0.1, 0.2, 0.2]])
-                regression_losses.append(self.detection_loss(positive_regressions, deta_gts) / torch.clamp(positive_num.float(), 1.0))
-                regression_losses.append(self.detection_loss(positive_regressions, deta_gts))
+                # if torch.cuda.is_available():
+                #     regression_losses.append(
+                #         self.detection_loss(positive_regressions, deta_gts, reduction='sum') / torch.clamp(
+                #             positive_num.float(),
+                #             1.0).cuda())
+                # else:
+                #     regression_losses.append(
+                #         self.detection_loss(positive_regressions, deta_gts, reduction='sum') / torch.clamp(
+                #             positive_num.float(), 1.0))
+                regression_losses.append(self.detection_loss(positive_regressions, deta_gts, reduction='mean'))
             else:
                 if torch.cuda.is_available():
-                    regression_losses.append(torch.tensor(0).float())
+                    regression_losses.append(torch.tensor(0).float().cuda())
                 else:
-                    regression_losses.append(torch.tensor(0).cuda().float())
+                    regression_losses.append(torch.tensor(0).float())
 
         return torch.stack(classification_losses).mean(), torch.stack(regression_losses).mean()
