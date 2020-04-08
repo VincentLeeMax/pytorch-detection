@@ -59,17 +59,21 @@ class VocDataset(Dataset):
         self.load_classes()
 
     def load_classes(self):
-        categories = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat',
+        self.class_names = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat',
                       'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person',
                       'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
 
         self.voc_labels = {}
         self.voc_labels_inverse = {}
-        for idx, c in enumerate(categories):
+        for idx, c in enumerate(self.class_names):
             if self.need_background:
                 idx += 1
             self.voc_labels[c] = idx
             self.voc_labels_inverse[idx] = c
+
+        if self.need_background:
+            self.class_names = ['background'] + self.class_names
+
 
     def load_image_ids(self):
         self.image_ids = []
@@ -116,7 +120,6 @@ class VocDataset(Dataset):
 
     def load_image(self, image_index):
         path_ = os.path.join(self.root_dir, self.set_name, 'JPEGImages', self.image_ids[image_index] + '.jpg')
-        print(path_)
         img = cv2.imread(path_)
 
         if len(img.shape) == 2:
@@ -131,8 +134,8 @@ class VocDataset(Dataset):
 
         return load_xml_annotaitons(path_, self.voc_labels)
 
-    def voc_label_to_label(self, coco_label):
-        return self.voc_labels_inverse[coco_label]
+    def voc_label_to_label(self, voc_label):
+        return self.voc_labels_inverse[voc_label]
 
     def label_to_voc_label(self, label):
         return self.voc_labels[label]
@@ -142,11 +145,11 @@ class VocDataset(Dataset):
 
         return float(image_info['width']) / float(image_info['height'])
 
+    def classes(self):
+        return self.class_names
+
     def num_classes(self):
-        if self.need_background:
-            return 21
-        else:
-            return 20
+        return len(self.class_names)
 
 
 if __name__ == '__main__':

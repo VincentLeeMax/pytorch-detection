@@ -17,9 +17,6 @@ def to_twoPoint_format(anchors, newone=False, image_shape=None):
     if image_shape is not None:
         twopoint_anchors[:, :, 0::2] = torch.clamp(twopoint_anchors[:, :, 0::2], 0, image_shape[1])
         twopoint_anchors[:, :, 1::2] = torch.clamp(twopoint_anchors[:, :, 1::2], 0, image_shape[0])
-    else:
-        twopoint_anchors[:, :, 0::2] = torch.clamp(twopoint_anchors[:, :, 0::2], 0)
-        twopoint_anchors[:, :, 1::2] = torch.clamp(twopoint_anchors[:, :, 1::2], 0)
 
     return twopoint_anchors
 

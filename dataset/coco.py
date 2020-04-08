@@ -13,7 +13,8 @@ from pycocotools.coco import COCO
 
 class CocoDataset(Dataset):
 
-    def __init__(self, root_dir, set_name='train2017', transform=None):
+    def __init__(self, root_dir, set_name='train2017', transform=None, need_background=False):
+        self.need_background = need_background
         self.root_dir = root_dir
         self.set_name = set_name
         self.transform = transform
@@ -37,8 +38,11 @@ class CocoDataset(Dataset):
         self.coco_labels = {}
         self.coco_labels_inverse = {}
         for c in categories:
-            self.coco_labels[len(self.classes)] = c['id']
-            self.coco_labels_inverse[c['id']] = len(self.classes)
+            id = c['id']
+            if self.need_background:
+                id += 1
+            self.coco_labels[len(self.classes)] = id
+            self.coco_labels_inverse[id] = len(self.classes)
             self.classes[c['name']] = len(self.classes)
 
         self.labels = {}
@@ -46,6 +50,8 @@ class CocoDataset(Dataset):
             self.labels[value] = key
 
         self.class_names = list(self.classes.keys())
+        if self.need_background:
+            self.class_names = ['background'] + self.class_names
 
     def __len__(self):
         return len(self.image_ids)
@@ -105,6 +111,11 @@ class CocoDataset(Dataset):
         image = self.coco.loadImgs(self.image_ids[image_index])[0]
         return float(image['width']) / float(image['height'])
 
+    def classes(self):
+        return self.class_names
+
+    def num_classes(self):
+        return len(self.class_names)
 
 if __name__ == '__main__':
     from torchvision import transforms

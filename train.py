@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from dataset.voc import VocDataset
 from dataset.coco import CocoDataset
 from dataset.transform import Normalizer, UniformResizer, ToTensor
+from dataset.dataloader import padded_collater, AspectRatioBatchSampler
 from layers.anchor_generate import FPNAnchors
 from layers.focal_loss import DetectionFocalLoss
 from layers.smooth_loss import SmoothL1
@@ -26,8 +27,11 @@ if __name__ == '__main__':
 
     dataset = VocDataset('/data/dataset/VOCdevkit', set_name='VOC2007',
                        transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
+    # dataset = CocoDataset('/data/dataset/coco', set_name='train2017',
+    #                      transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
     cfg['class_num'] = dataset.num_classes()
-    dataloader_train = DataLoader(dataset)
+    aspect_sampler = AspectRatioBatchSampler(dataset, batch_size=2)
+    dataloader_train = DataLoader(dataset, num_workers=1, batch_sampler=aspect_sampler, collate_fn=padded_collater)
     anchor_generator = FPNAnchors(anchor_scales=cfg['anchor_scales'], anchor_ratios=cfg['anchor_ratios'])
 
     model = RetinaNet(cfg)
@@ -65,7 +69,7 @@ if __name__ == '__main__':
             if loss == 0:
                 continue
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1, 1)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
             optimizer.step()
             
             loss_hist.append(float(loss))
