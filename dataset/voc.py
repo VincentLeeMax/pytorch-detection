@@ -28,8 +28,7 @@ def load_xml_annotaitons(path, class_to_ind, keep_difficult=False):
             bndbox.append(cur_pt)
         label_idx = class_to_ind[name]
         bndbox.append(label_idx)
-        res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
-        # img_id = target.find('filename').text[:-4]
+        res += [bndbox]
 
     # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
@@ -37,7 +36,6 @@ def load_xml_annotaitons(path, class_to_ind, keep_difficult=False):
 
 
 def load_xml_meta(path):
-    print(path)
     root = ET.parse(path).getroot()
 
     width = int(root.find('size').find('width').text)
@@ -48,7 +46,7 @@ def load_xml_meta(path):
 
 class VocDataset(Dataset):
 
-    def __init__(self, root_dir, set_name='VOC2007', transform=None, need_background=False):
+    def __init__(self, root_dir, set_name='train', transform=None, need_background=False):
         self.need_background = need_background
         self.root_dir = root_dir
         self.set_name = set_name
@@ -77,25 +75,23 @@ class VocDataset(Dataset):
 
     def load_image_ids(self):
         self.image_ids = []
-        path_ = os.path.join(self.root_dir, self.set_name, 'Annotations')
+        ids_file = open(os.path.join(self.root_dir, 'ImageSets', 'Main', self.set_name + '.txt'), 'r')
 
-        for file_ in os.listdir(path_):
-            postFix = '.' + file_.split('.')[-1]
-            image_id = file_.replace(postFix, '')
-            self.image_ids.append(image_id)
+        for id_ in ids_file.readlines():
+            self.image_ids.append(id_.strip())
 
     def load_image_infos(self):
         print('loading meta annotations...')
 
         self.image_infos = {}
-        path_ = os.path.join('.', 'cache', self.set_name)
+        path_ = os.path.join('./', 'cache', os.path.basename(self.root_dir) + self.set_name)
         if os.path.exists(path_):
             cache_ = open(path_, 'rb')
             self.image_infos = pickle.load(cache_)
             cache_.close()
         else:
             for image_id in self.image_ids:
-                path_image = os.path.join(self.root_dir, self.set_name, 'Annotations', image_id + '.xml')
+                path_image = os.path.join(self.root_dir, 'Annotations', image_id + '.xml')
                 self.image_infos[image_id] = load_xml_meta(path_image)
             if not os.path.exists(os.path.join('.', 'cache')):
                 os.makedirs(os.path.join('.', 'cache'))
@@ -119,7 +115,7 @@ class VocDataset(Dataset):
         return sample
 
     def load_image(self, image_index):
-        path_ = os.path.join(self.root_dir, self.set_name, 'JPEGImages', self.image_ids[image_index] + '.jpg')
+        path_ = os.path.join(self.root_dir, 'JPEGImages', self.image_ids[image_index] + '.jpg')
         img = cv2.imread(path_)
 
         if len(img.shape) == 2:
@@ -130,7 +126,7 @@ class VocDataset(Dataset):
         return img
 
     def load_annotations(self, image_index):
-        path_ = os.path.join(self.root_dir, self.set_name, 'Annotations', self.image_ids[image_index] + '.xml')
+        path_ = os.path.join(self.root_dir, 'Annotations', self.image_ids[image_index] + '.xml')
 
         return load_xml_annotaitons(path_, self.voc_labels)
 

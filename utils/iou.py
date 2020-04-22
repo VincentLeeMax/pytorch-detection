@@ -20,7 +20,8 @@ if __name__ == '__main__':
     import numpy as np
 
     bboxs = torch.from_numpy(np.array([[0, 278, 906, 424]])).float()
-    targets = torch.from_numpy(np.array([[ 0.0000,   91.9299,  776.1401,  548.0701]])).float()
+    targets = torch.from_numpy(np.array([[0.0000,   91.9299,  776.1401,  548.0701], [0.0000,   91.9299,  776.1401,  500.0701]])).float()
     ious = batch_cal_iou(bboxs, targets)
 
     print(ious)
+    print(torch.max(ious, dim=1))

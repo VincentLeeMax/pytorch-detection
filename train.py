@@ -1,3 +1,5 @@
+import os
+import time
 import argparse
 import collections
 import numpy as np
@@ -11,11 +13,13 @@ from dataset.voc import VocDataset
 from dataset.coco import CocoDataset
 from dataset.transform import Normalizer, UniformResizer, ToTensor
 from dataset.dataloader import padded_collater, AspectRatioBatchSampler
+from utils.bbox_transform import regress_box, to_twoPoint_format
 from layers.anchor_generate import FPNAnchors
 from layers.focal_loss import DetectionFocalLoss
 from layers.smooth_loss import SmoothL1
 from models.retinanet.retinanet_resnet import RetinaNet
 from config.cfg import C_, load_cfg
+from val import val
 
 if __name__ == '__main__':
     cfg = {'backbone': 'resnet50', 'class_num': 20, 'anchor_num': 9, 'anchor_scales': [2 ** 0, 2 ** (1/3), 2 ** (2/3)], 'anchor_ratios': [1. / 3, 1, 3]}
@@ -24,15 +28,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
     parser.add_argument('--dataset', help='Dataset type, must be one of csv or coco.', default='voc')
     parser.add_argument('--data_path', help='Path to COCO directory', default='/workspace/nas-data/dataset/voc/VOCdevkit')
+    args = parser.parse_args()
 
-    dataset = VocDataset('/data/dataset/VOCdevkit', set_name='VOC2007',
-                       transform=transforms.Compose([Normalizer(), UniformResizer(min_side=300, max_side=600), ToTensor()]))
-    # dataset = CocoDataset('/data/dataset/coco', set_name='train2017',
-    #                      transform=transforms.Compose([Normalizer(), UniformResizer(), ToTensor()]))
-    cfg['class_num'] = dataset.num_classes()
-    aspect_sampler = AspectRatioBatchSampler(dataset, batch_size=2)
-    dataloader_train = DataLoader(dataset, num_workers=1, batch_sampler=aspect_sampler, collate_fn=padded_collater)
+    dataset_train = VocDataset('/data/dataset/VOCdevkit/VOC2007', set_name='train',
+                       transform=transforms.Compose([Normalizer(), UniformResizer(min_side=400, max_side=600), ToTensor()]))
+    dataset_val = VocDataset('/data/dataset/VOCdevkit/VOC2007', set_name='val',
+                         transform=transforms.Compose([Normalizer(), UniformResizer(min_side=400, max_side=600), ToTensor()]))
+    cfg['class_num'] = dataset_train.num_classes()
+    dataloader_train = DataLoader(dataset_train, num_workers=1, batch_sampler=AspectRatioBatchSampler(dataset_train, batch_size=2),
+                                  collate_fn=padded_collater)
+    dataloader_val = DataLoader(dataset_val, num_workers=1, batch_sampler=AspectRatioBatchSampler(dataset_val, batch_size=2),
+                                  collate_fn=padded_collater)
     anchor_generator = FPNAnchors(anchor_scales=cfg['anchor_scales'], anchor_ratios=cfg['anchor_ratios'])
+
+    result_path = os.path.join('./result', time.strftime("%Y%m%d%H%M%S", time.localtime()))
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
 
     model = RetinaNet(cfg)
     model.freeze_bn()
@@ -50,6 +61,8 @@ if __name__ == '__main__':
     for epoch_num in range(100):
         epoch_loss = []
 
+        # train
+        model.train()
         for iter_num, data in enumerate(dataloader_train):
             optimizer.zero_grad()
 
@@ -82,4 +95,13 @@ if __name__ == '__main__':
             del classification_loss
             del regression_loss
 
+        print(
+            'Epoch: {} | learning rate: {} | Running loss: {:1.5f}'.format(epoch_num,
+                                                                           optimizer.param_groups[0]['lr'],
+                                                                           np.mean(loss_hist)))
+
+        # val
+        val(dataloader_val, anchor_generator, model)
+
         scheduler.step(np.mean(epoch_loss))
+        torch.save(model, os.path.join(result_path, '{}_retinanet_{}.pt'.format(args.dataset, epoch_num)))

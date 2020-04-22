@@ -128,7 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+*.pt
 *.pth
 /pretrain
 /cache
+/result
 /.idea

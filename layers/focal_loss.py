@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from utils.IoU import batch_cal_iou
+from utils.iou import batch_cal_iou
 from utils.bbox_transform import to_twoPoint_format
 
 
