@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 import torch
 from torchvision.ops import nms
 
@@ -64,7 +68,7 @@ if __name__ == '__main__':
     from torchvision import transforms
 
     from dataset.voc import VocDataset
-    from layers.anchor_generate import FPNAnchors
+    from layers.anchor_generator import FPNAnchors
     from dataset.transform import Normalizer, UniformResizer, ToTensor
     from dataset.dataloader import padded_collater, AspectRatioBatchSampler
     from utils.map import calculate_voc_map

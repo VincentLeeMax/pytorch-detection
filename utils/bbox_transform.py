@@ -1,6 +1,6 @@
 import torch
 
-def to_twoPoint_format(anchors, newone=False, image_shape=None):
+def to_cornor_form(anchors, newone=True, image_shape=None):
     if newone:
         twopoint_anchors = torch.ones(anchors.shape) * 1.0
     else:
@@ -13,14 +13,14 @@ def to_twoPoint_format(anchors, newone=False, image_shape=None):
     twopoint_anchors[:, :, 1] = anchors[:, :, 1] - anchors[:, :, 3] / 2
     twopoint_anchors[:, :, 3] = twopoint_anchors[:, :, 1] + anchors[:, :, 3]
 
-    if image_shape is not None:
-        twopoint_anchors[:, :, 0::2] = torch.clamp(twopoint_anchors[:, :, 0::2], 0, image_shape[1])
-        twopoint_anchors[:, :, 1::2] = torch.clamp(twopoint_anchors[:, :, 1::2], 0, image_shape[0])
+    # if image_shape is not None:
+    #     twopoint_anchors[:, :, 0::2] = torch.clamp(twopoint_anchors[:, :, 0::2], 0, image_shape[1])
+    #     twopoint_anchors[:, :, 1::2] = torch.clamp(twopoint_anchors[:, :, 1::2], 0, image_shape[0])
 
     return twopoint_anchors
 
 
-def to_central_format(anchors, newone=False):
+def to_central_form(anchors, newone=True):
     if newone:
         central_anchors = torch.ones(anchors.shape) * 1.0
     else:
@@ -32,11 +32,10 @@ def to_central_format(anchors, newone=False):
     central_anchors[:, :, 0] = anchors[:, :, 0] + central_anchors[:, :, 2] / 2
     central_anchors[:, :, 3] = anchors[:, :, 3] - anchors[:, :, 1]
     central_anchors[:, :, 1] = anchors[:, :, 1] + central_anchors[:, :, 3] / 2
-
     return central_anchors
 
 
-def regress_box(anchors, regressions, newone=False):
+def regress_box(anchors, regressions, newone=True):
     if newone:
         regressed_anchors = torch.ones(anchors.shape) * 1.0
     else:

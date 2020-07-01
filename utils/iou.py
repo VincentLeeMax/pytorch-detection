@@ -18,9 +18,16 @@ def batch_cal_iou(bboxs, targets):
 
 if __name__ == '__main__':
     import numpy as np
+    from utils.bbox_transform import to_cornor_form
 
-    bboxs = torch.from_numpy(np.array([[0, 278, 906, 424]])).float()
-    targets = torch.from_numpy(np.array([[0.0000,   91.9299,  776.1401,  548.0701], [0.0000,   91.9299,  776.1401,  500.0701]])).float()
+    bboxs = torch.from_numpy(np.array([[157.2000, 168.0000, 193.8000, 270.4000,   9.0000],
+        [ 98.4000, 210.4000, 151.2000, 296.8000,   9.0000],
+        [144.0000, 154.4000, 176.4000, 238.4000,   9.0000]])).float()
+    print(bboxs)
+    targets = torch.from_numpy(np.array([[157.2000, 168.0000, 193.8000, 270.4000,   9.0000],
+        [ 98.4000, 210.4000, 151.2000, 296.8000,   9.0000],
+        [144.0000, 154.4000, 176.4000, 238.4000,   9.0000]])).float()
+    print(targets)
     ious = batch_cal_iou(bboxs, targets)
 
     print(ious)

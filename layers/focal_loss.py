@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from utils.iou import batch_cal_iou
-from utils.bbox_transform import to_twoPoint_format
+from utils.bbox_transform import to_cornor_form
 
 
 class DetectionFocalLoss(nn.Module):
@@ -55,7 +55,7 @@ class DetectionFocalLoss(nn.Module):
             if torch.cuda.is_available():
                 alpha_factors = alpha_factors.cuda()
             alpha_factors = torch.where(torch.eq(gt_labels, 1.), alpha_factors, 1 - alpha_factors)
-            gamma_weights = torch.where(torch.eq(gt_labels, 1.), 1 - classification, classification)
+            gamma_weights = torch.where(torch.eq(gt_labels, 1.), 1. - classification, classification)
             focal_weights = alpha_factors * torch.pow(gamma_weights, self.gamma)
             bce = -(gt_labels * torch.log(classification) + (1.0 - gt_labels) * torch.log(1.0 - classification))
             classification_loss = focal_weights * bce
@@ -96,15 +96,7 @@ class DetectionFocalLoss(nn.Module):
                 else:
                     deta_gts = deta_gts / torch.Tensor([[0.1, 0.1, 0.2, 0.2]])
                     positive_regressions = positive_regressions / torch.Tensor([[0.1, 0.1, 0.2, 0.2]])
-                # if torch.cuda.is_available():
-                #     regression_losses.append(
-                #         self.detection_loss(positive_regressions, deta_gts, reduction='sum') / torch.clamp(
-                #             positive_num.float(),
-                #             1.0).cuda())
-                # else:
-                #     regression_losses.append(
-                #         self.detection_loss(positive_regressions, deta_gts, reduction='sum') / torch.clamp(
-                #             positive_num.float(), 1.0))
+
                 regression_losses.append(self.detection_loss(positive_regressions, deta_gts, reduction='mean'))
             else:
                 if torch.cuda.is_available():

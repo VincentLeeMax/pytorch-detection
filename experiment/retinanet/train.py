@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import time
 import argparse
 import collections
@@ -10,19 +12,19 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from dataset.voc import VocDataset
-from dataset.coco import CocoDataset
 from dataset.transform import Normalizer, UniformResizer, ToTensor
 from dataset.dataloader import padded_collater, AspectRatioBatchSampler
-from utils.bbox_transform import regress_box, to_twoPoint_format
-from layers.anchor_generate import FPNAnchors
+from layers.anchor_generator import FPNAnchors
 from layers.focal_loss import DetectionFocalLoss
 from layers.smooth_loss import SmoothL1
 from models.retinanet.retinanet_resnet import RetinaNet
-from config.cfg import C_, load_cfg
-from val import val
+from config.cfg import load_cfg
+from experiment.retinanet.val import val
 
 if __name__ == '__main__':
-    cfg = {'backbone': 'resnet50', 'class_num': 20, 'anchor_num': 9, 'anchor_scales': [2 ** 0, 2 ** (1/3), 2 ** (2/3)], 'anchor_ratios': [1. / 3, 1, 3]}
+    cfg = {'backbone': 'resnet50', 'class_num': 20, 'anchor_num': 9,
+           'anchor_scales': [2 ** 0, 2 ** (1/3), 2 ** (2/3)],
+           'anchor_ratios': [1. / 3, 1, 3]}
     load_cfg(cfg)
 
     parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
@@ -31,17 +33,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dataset_train = VocDataset('/data/dataset/VOCdevkit/VOC2007', set_name='train',
-                       transform=transforms.Compose([Normalizer(), UniformResizer(min_side=400, max_side=600), ToTensor()]))
+                       transform=transforms.Compose([Normalizer(), UniformResizer(min_side=300, max_side=600), ToTensor()]))
     dataset_val = VocDataset('/data/dataset/VOCdevkit/VOC2007', set_name='val',
-                         transform=transforms.Compose([Normalizer(), UniformResizer(min_side=400, max_side=600), ToTensor()]))
+                         transform=transforms.Compose([Normalizer(), UniformResizer(min_side=300, max_side=600), ToTensor()]))
     cfg['class_num'] = dataset_train.num_classes()
-    dataloader_train = DataLoader(dataset_train, num_workers=1, batch_sampler=AspectRatioBatchSampler(dataset_train, batch_size=2),
+    dataloader_train = DataLoader(dataset_train, num_workers=8, batch_sampler=AspectRatioBatchSampler(dataset_train, batch_size=1),
                                   collate_fn=padded_collater)
-    dataloader_val = DataLoader(dataset_val, num_workers=1, batch_sampler=AspectRatioBatchSampler(dataset_val, batch_size=2),
+    dataloader_val = DataLoader(dataset_val, num_workers=0, batch_sampler=AspectRatioBatchSampler(dataset_val, batch_size=1),
                                   collate_fn=padded_collater)
     anchor_generator = FPNAnchors(anchor_scales=cfg['anchor_scales'], anchor_ratios=cfg['anchor_ratios'])
 
-    result_path = os.path.join('./result', time.strftime("%Y%m%d%H%M%S", time.localtime()))
+    result_path = os.path.join('../../result', time.strftime("%Y%m%d%H%M%S", time.localtime()))
     if not os.path.exists(result_path):
         os.makedirs(result_path)
 
@@ -104,4 +106,4 @@ if __name__ == '__main__':
         val(dataloader_val, anchor_generator, model)
 
         scheduler.step(np.mean(epoch_loss))
-        torch.save(model, os.path.join(result_path, '{}_retinanet_{}.pt'.format(args.dataset, epoch_num)))
+        torch.save(model.modules(), os.path.join(result_path, '{}_retinanet_{}.pt'.format(args.dataset, epoch_num)))

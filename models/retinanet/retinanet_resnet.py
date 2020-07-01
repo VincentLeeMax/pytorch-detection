@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from backbone.resnet import ResNetModels as ResNet
+from models.backbone.resnet import ResNetModels as ResNet
 
 class FeaturePyramid(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, channel_=256):
@@ -144,7 +144,7 @@ class RetinaNet(nn.Module):
         self.class_num = cfg['class_num']
         self.anchor_num = cfg['anchor_num']
         
-        self.extractor = ResNet[cfg['backbone']](pretrained=False, progress=True, return_feature=True)
+        self.extractor = ResNet[cfg[self.arch]](pretrained=False, progress=True)
         feature_sizes = self.extractor.get_feature_size()
         self.fpn = FeaturePyramid(feature_sizes[0], feature_sizes[1], feature_sizes[2])
         self.classificationSubnet = ClassificationSubnet(self.class_num, self.anchor_num)

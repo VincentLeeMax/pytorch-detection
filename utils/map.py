@@ -33,6 +33,7 @@ def voc_ap(rec, prec, use_07_metric=False):
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
 
+
 def calculate_voc_map(classes, det_scores, det_classes, dets, gts, iou_thresh=0.5, use_07_metric=False):
     """
     classes: class label
@@ -51,8 +52,11 @@ def calculate_voc_map(classes, det_scores, det_classes, dets, gts, iou_thresh=0.
         dets_dict[idx_class].setdefault('classes', [])
         dets_dict[idx_class].setdefault('bbox', [])
         dets_dict[idx_class].setdefault('idx', [])
-
         gts_dict.setdefault(idx_class, {})
+
+        if idx_class == 0:
+            continue
+
         for idx_, _ in enumerate(dets):
             idx_dets = dets[idx_]
             idx_det_scores = det_scores[idx_]
@@ -77,7 +81,7 @@ def calculate_voc_map(classes, det_scores, det_classes, dets, gts, iou_thresh=0.
 
     map = []
     for idx_class, class_ in enumerate(classes):
-        if class_ == '__background__':
+        if idx_class == 0:
             continue
 
         orders_ = np.argsort(-np.array(dets_dict[idx_class]['scores']))
@@ -126,10 +130,5 @@ if __name__ == '__main__':
 
         gts.append(torch.randint(0, 100, (2, 5)))
         gts[idx][-1] = torch.randint(0, 20, (1, 1))
-
-    print(det_scores)
-    print(det_classes)
-    print(dets)
-    print(gts)
 
     calculate_voc_map(class_names, det_scores, det_classes, dets, gts)

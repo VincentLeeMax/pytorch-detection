@@ -13,7 +13,7 @@ from pycocotools.coco import COCO
 
 class CocoDataset(Dataset):
 
-    def __init__(self, root_dir, set_name='train2017', transform=None, need_background=False):
+    def __init__(self, root_dir, set_name='train2017', transform=None, need_background=True):
         self.need_background = need_background
         self.root_dir = root_dir
         self.set_name = set_name

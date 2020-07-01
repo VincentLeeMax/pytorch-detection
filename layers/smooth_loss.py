@@ -12,7 +12,7 @@ class SmoothL1(nn.Module):
     def forward(self, input, target, reduction='none'):
         # smooth L1 loss
         regression_diff = torch.abs(input - target)
-        regression_diff = torch.where(regression_diff > self.sigma, regression_diff - 0.5 * self.sigma,
+        regression_diff = torch.where(regression_diff >= self.sigma, regression_diff - 0.5 * self.sigma,
                                       torch.pow(regression_diff, 2) * 0.5 / self.sigma)
 
         if reduction != 'none':

@@ -6,14 +6,15 @@ import torch
 class Normalizer(object):
     """Normalize with mean and std"""
     def __init__(self):
-        self.mean = np.array([[[0.485, 0.456, 0.406]]])
+        self.mean = np.array([[[123, 117, 104]]])
         self.std = np.array([[[0.229, 0.224, 0.225]]])
 
     def __call__(self, sample):
 
         image, annots = sample['image'], sample['bbox']
 
-        return {'image':((image.astype(np.float32)-self.mean)/self.std), 'bbox': annots}
+        # return {'image':((image.astype(np.float32)-self.mean)/self.std), 'bbox': annots}
+        return {'image': (image.astype(np.float32) - self.mean), 'bbox': annots}
     
 class UniformResizer(object):
     """Resize image and annotation"""
@@ -43,13 +44,40 @@ class UniformResizer(object):
         
         bbox[:, :4] *= scale
 
+        return {'image': image, 'bbox': bbox, 'scale': [scale, scale]}
+
+
+class Resizer(object):
+    """Resize image and annotation"""
+
+    def __init__(self, size=512):
+        self.size = size
+
+    def __call__(self, sample):
+        image, bbox = sample['image'], sample['bbox']
+
+        rows, cols, cns = image.shape
+
+        # resize the image with the computed scale
+        image = cv2.resize(image, (self.size, self.size))
+
+        scale = [self.size * 1.0 / cols,  self.size * 1.0 / rows]
+        bbox[:, 0] *= scale[0]
+        bbox[:, 1] *= scale[1]
+        bbox[:, 2] *= scale[0]
+        bbox[:, 3] *= scale[1]
+
         return {'image': image, 'bbox': bbox, 'scale': scale}
 
     
 class ToTensor(object):
     """Change ndarrays to tensor"""
     def __call__(self, sample):
-        sample['image'] = torch.from_numpy(sample['image']).permute(2, 0, 1).float()
+        sample['image'] = torch.from_numpy(sample['image']).permute(2, 0, 1).unsqueeze(0).float()
         sample['bbox'] = torch.from_numpy(sample['bbox']).float()
+
+        if torch.cuda.is_available():
+            sample['image'] = sample['image'].cuda()
+            sample['bbox'] = sample['bbox'].cuda()
         
         return sample

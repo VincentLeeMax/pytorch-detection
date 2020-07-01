@@ -121,7 +121,7 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
-                 norm_layer=None, return_feature=False):
+                 norm_layer=None):
         super(ResNet, self).__init__()
         self.block = block
         self.layers = layers
@@ -152,7 +152,6 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        self.return_feature = return_feature
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -198,8 +197,8 @@ class ResNet(nn.Module):
     def get_feature_size(self):
         fpn_sizes = []
         if self.block == BasicBlock:
-            fpn_sizes = [self.layer2[self.layers[1] - 1].conv2.out_channels, self.layer3[self.layers[2] - 1].conv2.out_channels,
-                         self.layer4[self.layers[3] - 1].conv2.out_channels]
+            fpn_sizes = [self.layer2[self.layers[1] - 2].conv2.out_channels, self.layer3[self.layers[2] - 1].conv2.out_channels,
+                         self.layer4[self.layers[3] - 2].conv2.out_channels]
         elif self.block == Bottleneck:
             fpn_sizes = [self.layer2[self.layers[1] - 1].conv3.out_channels, self.layer3[self.layers[2] - 1].conv3.out_channels,
                          self.layer4[self.layers[3] - 1].conv3.out_channels]
@@ -219,10 +218,8 @@ class ResNet(nn.Module):
         C3 = self.layer2(C2)
         C4 = self.layer3(C3)
         C5 = self.layer4(C4)
-        if self.return_feature:
-            return [C3, C4, C5]
 
-        return C5
+        return [C3, C4, C5]
 
     def forward(self, x):
         return self._forward_impl(x)
